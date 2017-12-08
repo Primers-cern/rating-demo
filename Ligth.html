@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Light</title>
+<style>
+	html, body, ul, li {
+		padding: 0;
+		margin: 0;
+	}
+
+	li {
+		list-style: none;
+	}
+
+	#starbox {
+		background: pink;
+		width: 250px;
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%,-50%);
+	}
+
+	.star {
+		float: left;
+		height: 50px;
+		width: 50px;
+		background: url(ping.png) no-repeat;
+	}
+</style>
+</head>
+<body>
+	<ul id="starbox">
+		<li class="star" title="很差"></li>
+		<li class="star" title="不好"></li>
+		<li class="star" title="一般"></li>
+		<li class="star" title="不错"></li>
+		<li class="star" title="很好"></li>
+	</ul>
+
+<script>
+	var rating = (function () {
+		// 继承(减少实例化时的性能浪费)
+		var extend = function (subClass, superClass) {
+			var F = function () {};
+			F.prototype = superClass.prototype;
+			subClass.prototype = new F();
+			subClass.prototype.construtor = subClass;
+		};
+
+		// 点亮
+		var Light = function (el, options) {
+			// 替换默认参数
+			var newOptions = defaults;
+			for (i in options) {
+				if (newOptions.hasOwnProperty(i)) {
+					newOptions[i] = options[i]
+				}
+			}
+
+			this.el = document.getElementById(el);
+			this.items = this.el.children;
+			this.itemsLength = this.items.length
+
+			// 为每个子项的系数设为属性方便获取
+			for (var i=0; i<this.itemsLength; i++) {
+				this.items[i].indexOfItems = i;
+			};
+
+			this.opts = newOptions;
+			this.add = 1;
+			this.selectEvent = "on" + "mousemove";
+		};
+		Light.prototype.init = function () {
+			this.lightOn(this.opts.num);
+
+			if (!this.opts.readOnly) {
+				this.bindEvent();
+			}
+		};
+		Light.prototype.lightOn = function (num) {
+			num -= 1;
+			var count = Math.ceil(num);
+			var isHalf = num !== count;
+
+			for (var i=0; i<this.itemsLength; i++) {
+				if (i < count) {
+					this.items[i].style.backgroundPosition = "0 -50px";
+				} else if (i == count) {
+					if (this.opts.mode === "LightHalf" && isHalf) {
+						this.items[i].style.backgroundPosition = "0 -100px";
+					} else {
+						this.items[i].style.backgroundPosition = "0 -50px";
+					}
+				} else {
+					this.items[i].style.backgroundPosition = "0 0";
+				}
+			};
+		};
+		Light.prototype.bindEvent = function () {
+			var self = this;
+
+			self.el[this.selectEvent] = function (e) {
+				self.select(e);
+				var num = e.target.indexOfItems + self.add;
+				self.lightOn(num);
+			};
+			self.el.onmouseleave = function () {
+				self.lightOn(self.opts.num);
+			};
+			self.el.onclick = function (e) {
+				var targetIndex = e.target.indexOfItems;
+
+				self.opts.num = targetIndex + self.add;
+
+				(typeof self.opts.chosen === "function") && self.opts.chosen.call(this, targetIndex + 1, self.itemsLength);
+			};
+		};
+		Light.prototype.select = function () {
+			throw new Error("子类必须重写此方法，以判定是否半颗星星。")
+		};
+		Light.prototype.unbind = function () {
+			this.el[this.selectEvent] = function () {};
+			this.el.onmouseleave = function () {};
+			this.el.onclick = function () {};
+		};
+
+/*——————————————————————————————————————————————————————————————————————————————*/
+		// 点亮半颗
+		var LightHalf = function (el, options) {
+			Light.call(this, el, options);
+
+			this.selectEvent = "on" + "mousemove";
+		};
+		extend(LightHalf, Light);
+		LightHalf.prototype.lightOn = function (num) {
+			Light.prototype.lightOn.call(this, num);
+		};
+		LightHalf.prototype.bindEvent = function () {
+			Light.prototype.bindEvent.call(this);
+		};
+		LightHalf.prototype.select = function (e) {
+			var target = e.target;
+			if (e.pageX - target.getBoundingClientRect().left < target.clientWidth / 2) {
+				this.add = 0.5;
+			} else {
+				this.add = 1;
+			};
+		};
+		LightHalf.prototype.unbind = function () {
+			Light.prototype.unbind.call(this)
+		}
+
+/*——————————————————————————————————————————————————————————————————————————————*/
+
+		// 点亮整颗 
+		var LightEntire = function (el, options) {
+			Light.call(this, el, options);
+
+			this.selectEvent = "on" + "mouseover";
+		};
+		extend(LightEntire, Light)
+		LightEntire.prototype.lightOn = function (num) {
+			Light.prototype.lightOn.call(this, num);
+		};
+		LightEntire.prototype.bindEvent = function () {
+			Light.prototype.bindEvent.call(this)
+		};
+		LightEntire.prototype.select = function () {
+			this.add = 1;
+		};
+		LightEntire.prototype.unbind = function () {
+			Light.prototype.unbind.call(this)
+		}
+
+/*——————————————————————————————————————————————————————————————————————————————*/
+
+		// 默认参数
+		var defaults = {
+			num: 0,
+			readyOnly: false,
+			mode: "LightEntire",
+			chosen: function () {}
+		}
+
+		// 支持的模式
+		var mode = {
+			"LightEntire": LightEntire,
+			"LightHalf": LightHalf
+		};
+
+		var init = function (el, options) {
+			// 根据设置的mode决定点亮模式
+			// 容错，模式不对设为整颗
+			if (!mode[options.mode]) {
+				options.mode = "LightEntire";
+			}
+
+			// 储存实例化后的对象
+			var ele = document.getElementById(el)
+			var lighting = ele.data;
+			// 当未实例化时才进行（单例）
+			if (!lighting) {
+				ele.data = new mode[options.mode](el, typeof options === "object" && options);
+				ele.data.init();
+			};
+			if (typeof options === "string") ele.data[options]();
+		};
+
+		return {
+			init: init
+		}
+
+	})();
+
+	rating.init('starbox', {
+		num: 3.5,
+		readOnly: false,
+		mode: "LightHalf",
+		chosen: function (num, total) {
+			console.log(num + "/" + total);
+
+			rating.init('starbox', "unbind")
+		}
+	});
+</script>
+</body>
+</html>

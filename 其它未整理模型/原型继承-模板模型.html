@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>原型继承-模板模型</title>
+</head>
+<body>
+	<ul id="aaa">
+		<li class="star"></li>
+		<li class="star"></li>
+		<li class="star"></li>
+		<li class="star"></li>
+		<li class="star"></li>
+		<li class="star"></li>
+	</ul>
+
+
+<script>
+	var Yinliao = function () {}
+
+	Yinliao.prototype.feishui = function () {
+		console.log("把水煮沸")
+	}
+	Yinliao.prototype.blew = function () {
+		throw new Error('子类没有重写该方法')
+		// console.log('123')
+	}
+	Yinliao.prototype.fallIn = function () {
+		throw new Error('子类没有重写该方法')
+		// console.log('123')
+	}
+	Yinliao.prototype.addThing = function () {
+		throw new Error('子类没有重写该方法')
+		// console.log('123')
+	}
+	Yinliao.prototype.init = function () {
+		this.feishui()
+		this.blew()
+		this.fallIn()
+		this.addThing()
+	}
+
+	var Coffee = function () {}
+	Coffee.prototype = new Yinliao()
+
+	Coffee.prototype.blew = function () {
+		console.log('煮咖啡豆')
+	}
+	Coffee.prototype.fallIn = function () {
+		console.log('咖啡倒進被子')
+	}
+	Coffee.prototype.addThing = function () {
+		console.log('加点糖和奶')
+	}
+
+
+	var coffee = new Coffee
+	coffee.init()
+
+	var mode = {
+		LightEntire: "LightEntire",
+		LightHalf: "LightHalf"
+	}
+
+	var newOptions = {
+		mode: "123"
+	}
+
+	if (!mode[newOptions.mode]) {
+		newOptions.mode = "LightHalf";
+	}
+
+	console.log(mode[newOptions.mode])
+
+
+</script>
+</body>
+</html>

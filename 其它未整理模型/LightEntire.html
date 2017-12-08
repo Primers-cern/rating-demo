@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>LightEntire</title>
+<style>
+	html, body, ul, li {
+		padding: 0;
+		margin: 0;
+	}
+
+	li {
+		list-style: none;
+	}
+
+
+	#starbox {
+		background: pink;
+		width: 250px;
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%,-50%);
+	}
+
+	.star {
+		float: left;
+		height: 50px;
+		width: 50px;
+		background: url(ping.png) no-repeat;
+	}
+</style>
+</head>
+<body>
+	<ul id="starbox">
+		<li class="star" title="很差"></li>
+		<li class="star" title="不好"></li>
+		<li class="star" title="一般"></li>
+		<li class="star" title="不错"></li>
+		<li class="star" title="很好"></li>
+	</ul>
+
+<script>
+	var rating = (function () {
+		// 点亮整颗 
+		var LightEntire = function (el, options) {
+			this.el = document.getElementById(el);
+
+			this.items = this.el.children;
+			// 为items编号
+			for (var i=0; i<this.items.length; i++) {
+				this.items[i].indexOfItems = i
+			}
+
+			this.opts = options;
+		};
+		LightEntire.prototype.init = function () {
+			this.lightOn(this.opts.num);
+			
+			// 提交之后不再支持评分
+			if (!this.opts.readyOnly) {
+				this.bindEvent()
+			};
+		};
+		LightEntire.prototype.lightOn = function (num) {
+			//把传进来的星星个数变成序数
+			num -= 1 
+			num = Math.ceil(num)
+			
+			for (var i=0; i<this.items.length; i++) {
+				if (i <= num) {
+					this.items[i].style.backgroundPosition = '0 -50px';
+				} else {
+					this.items[i].style.backgroundPosition = '0 0';
+				};
+			};
+
+			// 打印想在评分点亮状态
+			console.log(num + 1 + '/' +this.items.length)
+		};
+		LightEntire.prototype.bindEvent = function () {
+			var self = this;
+
+			self.el.addEventListener('mouseover', function (e) {
+				var num = e.target.indexOfItems + 1;
+
+				self.lightOn(num);
+			});
+			self.el.addEventListener('mouseleave', function (e) {
+				self.lightOn(self.opts.num);
+			});
+			self.el.addEventListener('click', function (e) {
+				self.opts.num = e.target.indexOfItems + 1;
+			});
+		};
+		
+		
+		// 默认参数
+		var defaults = {
+			num: 0,
+			readyOnly: false
+		}
+		
+		function init (el, options) {
+			// 替换默认参数
+			var newOptions = defaults;
+			for (i in options) {
+				if (newOptions.hasOwnProperty(i)) {
+					newOptions[i] = options[i]
+				}
+			}
+			
+			// 实例化函数并运行
+			new LightEntire(el, newOptions).init();
+		};
+		
+		return {
+			init:init
+		};
+	})()
+
+	rating.init("starbox", {
+		num: 2,
+		readyOnly: false
+	});
+	
+</script>
+</body>
+</html>

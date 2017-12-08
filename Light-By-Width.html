@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Light-By-Width</title>
+<style>
+	* {
+		padding: 0;
+		margin: 0;
+	}
+
+	html, body {
+		height: 100%;
+		width: 100%;
+	}
+	.warp {
+		position: relative;
+		margin: 0 auto;
+		height: 100%;
+	}
+	#box {
+		position: absolute;
+		width: 0;
+		height: 50px;
+		background: url(ping.png) 0 0 repeat-x;
+		left: 50%;
+		top: 50%;
+		transform: translate(-50%, -50%);
+	}
+	.item {
+		width: 0;
+		height: 50px;
+		background: url(ping.png) 0 -50px repeat-x;
+	}
+	.item:hover {
+		width: 220px;
+	}
+</style>
+</head>
+
+<body>
+	<div class="warp">
+		<div id="box">
+			<div class="item"></div>
+		</div>
+	</div>
+
+<script>
+	window.onload = function () {
+		var rating = (function () {
+			// 策略模式
+			var strategies = {
+				entire: function () {
+					return 1;
+				},
+				half: function () {
+					return 2;
+				},
+				quarter: function () {
+					return 4;
+				}
+			};
+
+			var Light = function (el, options) {
+				// 将设置项导入到新对象中
+				var newOptions = defaults;
+				for (var i in options) {
+					if (defaults.hasOwnProperty(i)) {
+						newOptions[i] = options[i];
+					};
+				};
+
+				this.el = document.getElementById(el);
+				this.item = this.el.children[0];
+				this.opts = newOptions;
+				// 评分中每一份的宽度（用一整颗星星的宽度除以要分割数）
+				this.strategies = strategies[newOptions.mode]();
+				this.onePack = newOptions.size / this.strategies;
+			};
+			Light.prototype.init = function () {
+				// 设置盒子宽度
+				this.el.style.width = this.opts.size * this.opts.totalNum + "px";
+
+				this.lightOn(this.opts.lightNum);
+
+				if (!this.opts.readOnly) {
+					this.bindEvent();
+				};
+			};
+			// 点亮
+			Light.prototype.lightOn = function (num) {
+				this.item.style.width = this.opts.size * num + "px";
+			};
+			// 绑定交互
+			Light.prototype.bindEvent = function () {
+				var self = this;
+
+				self.el.onmousemove = function (e) {
+					// 获取鼠标到el左边的距离，然后用距离和每份大小求出具体点亮颗数。
+					var pointLeft = e.pageX - self.el.getBoundingClientRect().left,
+						packs  = Math.ceil( pointLeft / self.onePack);
+
+					self.lightOn(packs / self.strategies);
+				};
+				self.el.onmouseleave = function () {
+					self.lightOn(self.opts.lightNum);
+				};
+				self.el.onclick = function () {
+					var itemWidth = self.item.style.width.match(/\d+(\.\d)?/)[0];
+					var num = itemWidth / self.opts.size;
+					
+					self.opts.lightNum = num;
+
+					// 点击后激活设置的点击事件（打印现事评分）
+					(typeof self.opts.chosen === "function") && self.opts.chosen.call(this, num, self.opts.totalNum);
+				};
+			};
+			// 取消绑定（把方法设置为空）
+			Light.prototype.unbind = function () {
+				this.el.onmousemove = function () {};
+				this.el.onmouseleave = function () {};
+				this.el.onclick = function () {};
+			};
+
+			// 默认参数
+			var defaults = {
+				mode: "entire",// 星星评分最小值
+				size: 50, // 每颗星星的宽度
+				totalNum: 5, // 总共有多少颗星星
+				lightNum: 0, // 默认电量多少颗
+				readOnly: false, // 是否可读，
+				chosen: function () {} // 点击执行的方法
+			}
+
+			var init = function (el, options) {
+				// 单例，避免重复实例化
+				var ele = document.getElementById(el),
+					lighting = ele.data;
+
+				// 若不存在则实例之
+				if (!lighting) {
+					ele.data = new Light(el, typeof options === "object" && options);
+					ele.data.init();
+				};
+
+				// 如果传入的是字符串，这直接执行。
+				if (typeof options === "string") lighting[options]();
+			};
+
+			return {
+				init: init
+			};			
+		})();
+
+		rating.init('box', {
+			mode: "half",
+			size: 50,
+			totalNum: 6,
+			lightNum: 2,
+			readOnly: false,
+			chosen: function (num, total) {
+				console.log(num + "/" + total);
+				rating.init('box', 'unbind');
+			}
+		});
+	}
+</script>
+</body>
+</html>
